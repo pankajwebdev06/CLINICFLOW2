@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useClinic } from '@/lib/clinic-context';
+import { useClinic } from '@/store/clinic-context';
+import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
+import { VitalsGrid } from '@/components/shared/VitalsGrid';
+import { ClinicSidebar } from '@/components/shared/ClinicSidebar';
 
 type FlowState = 'search' | 'loading' | 'history' | 'new_patient' | 'vitals' | 'token';
 
@@ -62,26 +64,17 @@ export default function ReceptionDashboard() {
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
 
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white hidden md:flex flex-col sticky top-0 h-screen overflow-y-auto print:hidden">
-        <div className="p-6 border-b border-slate-800">
-          <h2 className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-300 leading-tight">{clinic.clinicName}</h2>
-          <p className="text-slate-400 text-xs mt-0.5 truncate">Reception Desk</p>
-        </div>
-        <nav className="p-4 space-y-2 flex-1">
-          <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-600 text-white font-medium shadow-md">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-            Patient Entry
-          </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-            Queue Management
-          </a>
-        </nav>
-        <div className="p-4 border-t border-slate-800">
-          <p className="text-slate-500 text-xs">{clinic.doctorName}</p>
-          <p className="text-slate-600 text-xs mt-0.5">{clinic.specialization}</p>
-        </div>
-      </aside>
+      <ClinicSidebar 
+        clinicName={clinic.clinicName}
+        subtitle="Reception Desk"
+        doctorName={clinic.doctorName}
+        specialization={clinic.specialization}
+        navItems={[
+          { id: 'entry', icon: '➕', label: 'Patient Entry' },
+          { id: 'queue', icon: '📋', label: 'Queue Management' },
+        ]}
+        activeId="entry"
+      />
 
       {/* Main */}
       <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full">
@@ -97,21 +90,17 @@ export default function ReceptionDashboard() {
 
         {/* Page title with breadcrumb */}
         <div className="mb-8 print:hidden">
-          <nav className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-3">
-            <Link href="/" className="hover:text-blue-600 transition-colors">🏠 Home</Link>
-            <span>›</span>
-            <Link href="/doctor/dashboard" className="hover:text-blue-600 transition-colors">Doctor Dashboard</Link>
-            <span>›</span>
-            <span className="text-slate-600 font-semibold">Reception</span>
-            {flowState !== 'search' && flowState !== 'loading' && (
-              <>
-                <span>›</span>
-                <span className="text-blue-600 font-semibold capitalize">
-                  {flowState === 'new_patient' ? 'New Patient' : flowState === 'history' ? 'Existing Patient' : flowState === 'vitals' ? 'Vitals' : 'Token Generated'}
-                </span>
-              </>
-            )}
-          </nav>
+          <Breadcrumbs 
+            items={[
+              { label: 'Home', href: '/', icon: '🏠' },
+              { label: 'Doctor Dashboard', href: '/doctor/dashboard' },
+              { label: 'Reception', isCurrent: flowState === 'search' },
+              ...(flowState !== 'search' && flowState !== 'loading' ? [{
+                label: flowState === 'new_patient' ? 'New Patient' : flowState === 'history' ? 'Existing Patient' : flowState === 'vitals' ? 'Vitals' : 'Token Generated',
+                isCurrent: true
+              }] : [])
+            ]}
+          />
           <h1 className="text-3xl font-bold text-slate-900">Patient Check-in</h1>
           <p className="text-slate-500 mt-2">Enter mobile number to search <strong>{clinic.clinicName}</strong> patient database.</p>
         </div>
@@ -250,14 +239,7 @@ export default function ReceptionDashboard() {
                       <p className="font-bold text-slate-800 text-lg">{patientData.name}</p>
                       <p className="text-slate-600">{patientData.age} yrs • {patientData.gender} • +91 {mobileNumber}</p>
                     </div>
-                    {(vitals.bp || vitals.weight) && (
-                      <div className="grid grid-cols-4 gap-2 pt-3 border-t border-slate-100">
-                        {vitals.bp && <div className="text-center"><p className="text-[10px] text-slate-400">BP</p><p className="text-xs font-bold text-slate-700">{vitals.bp}</p></div>}
-                        {vitals.weight && <div className="text-center"><p className="text-[10px] text-slate-400">Weight</p><p className="text-xs font-bold text-slate-700">{vitals.weight}kg</p></div>}
-                        {vitals.temperature && <div className="text-center"><p className="text-[10px] text-slate-400">Temp</p><p className="text-xs font-bold text-slate-700">{vitals.temperature}</p></div>}
-                        {vitals.pulse && <div className="text-center"><p className="text-[10px] text-slate-400">Pulse</p><p className="text-xs font-bold text-slate-700">{vitals.pulse}</p></div>}
-                      </div>
-                    )}
+                    <VitalsGrid vitals={vitals} variant="slate" />
                   </div>
 
                   <p className="mt-6 text-sm text-slate-400">{clinic.clinicName} • {clinic.doctorName} • {new Date().toLocaleDateString('en-IN')}</p>

@@ -1,8 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
+
+import { useClinic } from '@/store/clinic-context';
 import Link from 'next/link';
-import { useClinic } from '@/lib/clinic-context';
+import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
+import { VitalsGrid } from '@/components/shared/VitalsGrid';
+import { ClinicSidebar } from '@/components/shared/ClinicSidebar';
 
 type Tab = 'queue' | 'summary' | 'settings';
 
@@ -83,45 +87,26 @@ export default function DoctorDashboard() {
     <div className="min-h-screen bg-slate-50 flex">
 
       {/* Sidebar */}
-      <aside className={`hidden md:flex flex-col sticky top-0 h-screen bg-slate-900 text-white transition-all duration-300 ${focusMode ? 'w-16' : 'w-64'}`}>
-        <div className={`p-5 border-b border-slate-800 ${focusMode ? 'flex justify-center' : ''}`}>
-          {!focusMode ? (
-            <>
-              <h2 className="text-base font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-300 truncate">{clinic.clinicName}</h2>
-              <p className="text-slate-400 text-xs mt-0.5 truncate">{clinic.doctorName} • {clinic.specialization}</p>
-            </>
-          ) : (
-            <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-b from-blue-400 to-teal-300">C</span>
-          )}
-        </div>
-
-        <nav className="p-3 space-y-1 flex-1">
-          {[
-            { id: 'queue', icon: '🗂️', label: 'Patient Queue' },
-            { id: 'summary', icon: '📊', label: 'Daily Summary' },
-            { id: 'settings', icon: '⚙️', label: 'Settings & Staff' },
-          ].map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id as Tab)}
-              className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ${activeTab === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
-              <span className="text-lg leading-none">{item.icon}</span>
-              {!focusMode && <span>{item.label}</span>}
-            </button>
-          ))}
-
-        </nav>
-
-        <div className="p-3 border-t border-slate-800 space-y-1">
-          <button onClick={() => setFocusMode(f => !f)}
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
-            <span className="text-lg">{focusMode ? '⬅️' : '🎯'}</span>
-            {!focusMode && <span>Focus Mode</span>}
-          </button>
+      <ClinicSidebar 
+        clinicName={clinic.clinicName}
+        subtitle={`${clinic.doctorName} • ${clinic.specialization}`}
+        doctorName={clinic.doctorName}
+        specialization={clinic.specialization}
+        activeId={activeTab}
+        focusMode={focusMode}
+        onToggleFocus={() => setFocusMode(!focusMode)}
+        navItems={[
+          { id: 'queue', icon: '🗂️', label: 'Patient Queue', onClick: () => setActiveTab('queue') },
+          { id: 'summary', icon: '📊', label: 'Daily Summary', onClick: () => setActiveTab('summary') },
+          { id: 'settings', icon: '⚙️', label: 'Settings & Staff', onClick: () => setActiveTab('settings') },
+        ]}
+        footerContent={
           <Link href="/" className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-red-900/30 hover:text-red-400 transition-colors">
             <span className="text-lg">🚪</span>
             {!focusMode && <span>Logout</span>}
           </Link>
-        </div>
-      </aside>
+        }
+      />
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
@@ -139,18 +124,16 @@ export default function DoctorDashboard() {
 
         {/* Page Header with Breadcrumb */}
         <div className="px-5 md:px-8 pt-5 pb-4 border-b border-slate-100 bg-white">
-          {/* Breadcrumb nav */}
-          <nav className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-3">
-            <Link href="/" className="hover:text-blue-600 transition-colors">🏠 Home</Link>
-            <span>›</span>
-            <span className="text-slate-600 font-semibold">Doctor Dashboard</span>
-            {activeTab !== 'queue' && (
-              <>
-                <span>›</span>
-                <span className="text-blue-600 font-semibold capitalize">{activeTab === 'summary' ? 'Daily Summary' : 'Settings & Staff'}</span>
-              </>
-            )}
-          </nav>
+          <Breadcrumbs 
+            items={[
+              { label: 'Home', href: '/', icon: '🏠' },
+              { label: 'Doctor Dashboard', isCurrent: activeTab === 'queue' },
+              ...(activeTab !== 'queue' ? [{
+                label: activeTab === 'summary' ? 'Daily Summary' : 'Settings & Staff',
+                isCurrent: true
+              }] : [])
+            ]}
+          />
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">{clinic.clinicName}</h1>
@@ -226,14 +209,7 @@ export default function DoctorDashboard() {
                       {selectedPatient.bp && (
                         <div>
                           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Vitals (filled by Reception)</p>
-                          <div className="grid grid-cols-4 gap-3">
-                            {[['BP', selectedPatient.bp!], ['Weight', `${selectedPatient.weight} kg`], ['Temp', selectedPatient.temperature!], ['Pulse', `${selectedPatient.pulse} bpm`]].map(([k, v]) => (
-                              <div key={k} className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
-                                <p className="text-blue-400 text-[10px] font-semibold">{k}</p>
-                                <p className="text-blue-900 font-bold text-sm mt-0.5">{v}</p>
-                              </div>
-                            ))}
-                          </div>
+                          <VitalsGrid vitals={selectedPatient} />
                         </div>
                       )}
 

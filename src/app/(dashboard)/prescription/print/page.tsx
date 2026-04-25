@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useClinic } from '@/lib/clinic-context';
+import { useClinic } from '@/store/clinic-context';
+import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
+import { Button } from '@/components/ui/Button';
 
 const TEMPLATES = [
   { id: 't1', name: 'Classic Blue', accent: '#1d4ed8', bg: '#eff6ff', border: '4px solid #1d4ed8', headerBg: 'white', textColor: '#1e3a5f' },
@@ -148,13 +150,13 @@ function PrintPage() {
         <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20">
           <div className="max-w-5xl mx-auto px-5 py-4">
             {/* Breadcrumb */}
-            <nav className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-2">
-              <a href="/" className="hover:text-blue-600 transition-colors">🏠 Home</a>
-              <span>›</span>
-              <a href="/reception" className="hover:text-blue-600 transition-colors">Reception</a>
-              <span>›</span>
-              <span className="text-slate-600 font-semibold">Print Prescription</span>
-            </nav>
+            <Breadcrumbs 
+              items={[
+                { label: 'Home', href: '/', icon: '🏠' },
+                { label: 'Reception', href: '/reception' },
+                { label: 'Print Prescription', isCurrent: true }
+              ]}
+            />
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-lg font-bold text-slate-900">Print Prescription</h1>
@@ -168,10 +170,9 @@ function PrintPage() {
                   <span className="text-sm font-semibold text-slate-600">{tpl.name}</span>
                   <span className="text-xs text-slate-400">(set by doctor)</span>
                 </div>
-                <button onClick={handlePrint} disabled={isPrinting}
-                  className="flex items-center gap-2 px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-60">
-                  {isPrinting ? '⏳ Preparing...' : '🖨️ Print Prescription'}
-                </button>
+                <Button onClick={handlePrint} loading={isPrinting} icon="🖨️" size="lg">
+                  Print Prescription
+                </Button>
               </div>
             </div>
           </div>

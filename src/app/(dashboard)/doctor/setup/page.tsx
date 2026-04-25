@@ -2,7 +2,10 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClinic, ClinicData } from '@/lib/clinic-context';
+import { useClinic, ClinicData } from '@/store/clinic-context';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -73,13 +76,13 @@ export default function ClinicSetup() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-teal-400 text-white shadow-lg shadow-blue-500/30 mb-4 font-black text-lg">CF</div>
           <h1 className="text-2xl font-extrabold text-slate-900">Setup Your Clinic</h1>
           <p className="text-slate-500 mt-1 text-sm">Complete {stepConfig.length} quick steps to get started</p>
-          <nav className="flex items-center justify-center gap-1.5 text-xs text-slate-400 font-medium mt-3">
-            <a href="/" className="hover:text-blue-600 transition-colors">🏠 Home</a>
-            <span>›</span>
-            <span className="text-slate-600 font-semibold">Clinic Setup</span>
-            <span>›</span>
-            <span className="text-blue-600 font-semibold">Step {step} of {stepConfig.length}</span>
-          </nav>
+          <Breadcrumbs 
+            items={[
+              { label: 'Home', href: '/', icon: '🏠' },
+              { label: 'Clinic Setup', isCurrent: true },
+              { label: `Step ${step} of ${stepConfig.length}` }
+            ]}
+          />
         </div>
 
         {/* Step Indicators */}
@@ -112,25 +115,26 @@ export default function ClinicSetup() {
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-400">
               <h2 className="text-xl font-bold text-slate-800">Your Professional Details</h2>
               <div className="grid grid-cols-1 gap-5">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-600">Full Name (with Dr. prefix)</label>
-                  <input value={form.doctorName} onChange={e => update('doctorName', e.target.value)}
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-800 font-medium"
-                    placeholder="e.g. Dr. Anil Mehra" />
-                </div>
+                <Input 
+                  label="Full Name (with Dr. prefix)"
+                  value={form.doctorName}
+                  onChange={e => update('doctorName', e.target.value)}
+                  placeholder="e.g. Dr. Anil Mehra"
+                />
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-semibold text-slate-600">Degree(s)</label>
-                    <input value={form.degree} onChange={e => update('degree', e.target.value)}
-                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
-                      placeholder="e.g. MBBS, MD" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-semibold text-slate-600">Experience (years)</label>
-                    <input type="number" value={form.experience} onChange={e => update('experience', e.target.value)}
-                      className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium"
-                      placeholder="e.g. 12" />
-                  </div>
+                  <Input 
+                    label="Degree(s)"
+                    value={form.degree}
+                    onChange={e => update('degree', e.target.value)}
+                    placeholder="e.g. MBBS, MD"
+                  />
+                  <Input 
+                    label="Experience (years)"
+                    type="number"
+                    value={form.experience}
+                    onChange={e => update('experience', e.target.value)}
+                    placeholder="e.g. 12"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-slate-600">Specialization</label>
@@ -148,25 +152,28 @@ export default function ClinicSetup() {
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-400">
               <h2 className="text-xl font-bold text-slate-800">Clinic Information</h2>
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-slate-600">Clinic Name</label>
-                <input value={form.clinicName} onChange={e => update('clinicName', e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                  placeholder="e.g. Mehra Health Clinic" />
-              </div>
+              <Input 
+                label="Clinic Name"
+                value={form.clinicName}
+                onChange={e => update('clinicName', e.target.value)}
+                placeholder="e.g. Mehra Health Clinic"
+              />
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-600">City</label>
-                  <input value={form.city} onChange={e => update('city', e.target.value)}
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    placeholder="e.g. New Delhi" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-600">Contact Number</label>
-                  <input type="tel" maxLength={10} value={form.phone} onChange={e => update('phone', e.target.value.replace(/\D/g, ''))}
-                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                    placeholder="10-digit" />
-                </div>
+                <Input 
+                  label="City"
+                  value={form.city}
+                  onChange={e => update('city', e.target.value)}
+                  placeholder="e.g. New Delhi"
+                />
+                <Input 
+                  label="Contact Number"
+                  type="tel"
+                  maxLength={10}
+                  value={form.phone}
+                  onChange={e => update('phone', e.target.value.replace(/\D/g, ''))}
+                  prefixText="+91"
+                  placeholder="10-digit"
+                />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-600">Full Clinic Address</label>
@@ -235,18 +242,19 @@ export default function ClinicSetup() {
                 <p className="text-slate-500 text-sm mt-1">Add staff by mobile number. They log in instantly using it.</p>
               </div>
               <div className="flex gap-3">
-                <div className="relative flex-1">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm border-r border-slate-200 pr-3">+91</span>
-                  <input type="tel" maxLength={10} value={staffInput}
-                    onChange={e => setStaffInput(e.target.value.replace(/\D/g, ''))}
-                    onKeyDown={e => e.key === 'Enter' && addStaff()}
-                    className="w-full pl-16 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium tracking-widest"
-                    placeholder="Staff mobile" />
-                </div>
-                <button onClick={addStaff} disabled={staffInput.length !== 10}
-                  className="px-5 py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:opacity-40 transition-all active:scale-95">
+                <Input 
+                  type="tel"
+                  maxLength={10}
+                  value={staffInput}
+                  onChange={e => setStaffInput(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={e => e.key === 'Enter' && addStaff()}
+                  prefixText="+91"
+                  placeholder="Staff mobile"
+                  className="tracking-widest"
+                />
+                <Button onClick={addStaff} disabled={staffInput.length !== 10} variant="dark">
                   Add
-                </button>
+                </Button>
               </div>
               <div className="space-y-3 max-h-52 overflow-y-auto">
                 {staffList.length === 0 ? (
@@ -273,15 +281,13 @@ export default function ClinicSetup() {
           {/* Navigation */}
           <div className="flex gap-3 mt-8 pt-6 border-t border-slate-100">
             {step > 1 && (
-              <button onClick={() => setStep(s => (s - 1) as Step)}
-                className="px-6 py-4 rounded-xl font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+              <Button onClick={() => setStep(s => (s - 1) as Step)} variant="secondary" size="lg">
                 Back
-              </button>
+              </Button>
             )}
-            <button onClick={handleNext}
-              className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+            <Button onClick={handleNext} variant="primary" size="lg" fullWidth>
               {step === 4 ? '🚀 Finish & Open Dashboard' : 'Continue →'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

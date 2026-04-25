@@ -1,8 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useClinic } from '@/lib/clinic-context';
+
+import { useClinic } from '@/store/clinic-context';
 import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { VitalsGrid } from '@/components/shared/VitalsGrid';
 
 const TEMPLATES = [
   {
@@ -138,19 +142,7 @@ function PrescriptionPreview({ templateId, clinic, patient, compact = false }: {
         </div>
 
         {/* Vitals */}
-        <div className="grid grid-cols-4 gap-2 bg-blue-50 rounded-lg p-2 border border-blue-100">
-          {[
-            ['BP', patient.bp],
-            ['Weight', `${patient.weight} kg`],
-            ['Temp', patient.temperature],
-            ['Pulse', `${patient.pulse} bpm`],
-          ].map(([k, v]) => (
-            <div key={k}>
-              <p className="text-blue-400 font-sans" style={{ fontSize: '0.65em' }}>{k}</p>
-              <p className="font-bold text-blue-900 font-sans">{v}</p>
-            </div>
-          ))}
-        </div>
+        <VitalsGrid vitals={patient} />
 
         {/* Symptoms */}
         <div className="bg-amber-50 rounded-lg p-2 border border-amber-100">
@@ -198,10 +190,9 @@ export default function PrescriptionTemplatesPage() {
             </div>
             <p className="text-slate-500 text-sm font-medium">{clinic.clinicName} • {clinic.doctorName}</p>
           </div>
-          <button onClick={handlePrint}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition-all active:scale-[0.98]">
-            🖨️ Print with Template
-          </button>
+          <Button onClick={handlePrint} icon="🖨️">
+            Print with Template
+          </Button>
         </div>
       </header>
 
@@ -249,15 +240,15 @@ export default function PrescriptionTemplatesPage() {
                   { label: 'Temperature', key: 'temperature', placeholder: '98.6°F' },
                   { label: 'Pulse (bpm)', key: 'pulse', placeholder: '72' },
                 ].map(({ label, key, placeholder }) => (
-                  <div key={key} className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-500">{label}</label>
-                    <input
-                      value={patient[key as keyof typeof patient]}
-                      onChange={e => setPatient(p => ({ ...p, [key]: e.target.value }))}
-                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm font-medium"
-                      placeholder={placeholder}
-                    />
-                  </div>
+                  <Input
+                    key={key}
+                    label={label}
+                    value={patient[key as keyof typeof patient]}
+                    onChange={e => setPatient(p => ({ ...p, [key]: e.target.value }))}
+                    placeholder={placeholder}
+                    className="text-sm font-medium"
+                    fullWidth={false}
+                  />
                 ))}
               </div>
               <div className="mt-4 space-y-1.5">
