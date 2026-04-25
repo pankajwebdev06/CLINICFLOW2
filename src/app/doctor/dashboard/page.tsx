@@ -53,6 +53,25 @@ export default function DoctorDashboard() {
     setSelectedPatient(next ?? null);
   };
 
+  const skipPatient = (token: string) => {
+    // Move to end of queue, back to waiting
+    setQueue(q => {
+      const patient = q.find(p => p.token === token);
+      if (!patient) return q;
+      const rest = q.filter(p => p.token !== token);
+      return [...rest, { ...patient, status: 'waiting' as const }];
+    });
+    const next = queue.find(p => p.status === 'waiting' && p.token !== token);
+    setSelectedPatient(next ?? null);
+  };
+
+  const cancelPatient = (token: string) => {
+    if (!confirm(`Cancel patient ${token} from today's queue?`)) return;
+    setQueue(q => q.filter(p => p.token !== token));
+    const next = queue.find(p => p.status === 'waiting' && p.token !== token);
+    setSelectedPatient(next ?? null);
+  };
+
   const stats = [
     { label: "Today's Patients", value: queue.length.toString(), icon: '👥', color: 'bg-blue-50 text-blue-700' },
     { label: 'In Queue', value: queue.filter(p => p.status === 'waiting').length.toString(), icon: '⏳', color: 'bg-amber-50 text-amber-700' },
@@ -118,8 +137,20 @@ export default function DoctorDashboard() {
           </div>
         </div>
 
-        {/* Page Header */}
-        <div className="px-5 md:px-8 pt-7 pb-4 border-b border-slate-100 bg-white">
+        {/* Page Header with Breadcrumb */}
+        <div className="px-5 md:px-8 pt-5 pb-4 border-b border-slate-100 bg-white">
+          {/* Breadcrumb nav */}
+          <nav className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-3">
+            <Link href="/" className="hover:text-blue-600 transition-colors">🏠 Home</Link>
+            <span>›</span>
+            <span className="text-slate-600 font-semibold">Doctor Dashboard</span>
+            {activeTab !== 'queue' && (
+              <>
+                <span>›</span>
+                <span className="text-blue-600 font-semibold capitalize">{activeTab === 'summary' ? 'Daily Summary' : 'Settings & Staff'}</span>
+              </>
+            )}
+          </nav>
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-black text-slate-900 tracking-tight">{clinic.clinicName}</h1>
@@ -218,16 +249,28 @@ export default function DoctorDashboard() {
                         <textarea rows={3} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-700 text-sm" placeholder="Doctor's clinical notes..." />
                       </div>
 
-                      <div className="flex gap-3 pt-2">
-                        <div className="flex-1 flex items-center justify-center gap-2 py-3.5 border-2 border-slate-200 text-slate-400 rounded-xl font-medium text-sm cursor-default select-none">
-                          🖨️ Reception prints prescription
-                        </div>
-                        {selectedPatient.status !== 'done' && (
-                          <button onClick={() => markDone(selectedPatient.token)}
-                            className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.98] text-sm">
-                            ✅ Done — Next Patient
-                          </button>
-                        )}
+                      {/* 3-Button Action Row */}
+                      <div className="grid grid-cols-3 gap-3 pt-2">
+                        <button
+                          onClick={() => markDone(selectedPatient.token)}
+                          disabled={selectedPatient.status === 'done'}
+                          className="py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98] text-sm flex flex-col items-center gap-0.5">
+                          <span className="text-base">✅</span>
+                          <span>Complete</span>
+                        </button>
+                        <button
+                          onClick={() => skipPatient(selectedPatient.token)}
+                          disabled={selectedPatient.status === 'done'}
+                          className="py-3.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-md shadow-amber-500/20 transition-all active:scale-[0.98] text-sm flex flex-col items-center gap-0.5">
+                          <span className="text-base">⏭️</span>
+                          <span>Skip</span>
+                        </button>
+                        <button
+                          onClick={() => cancelPatient(selectedPatient.token)}
+                          className="py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-md shadow-red-500/20 transition-all active:scale-[0.98] text-sm flex flex-col items-center gap-0.5">
+                          <span className="text-base">❌</span>
+                          <span>Cancel</span>
+                        </button>
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useClinic } from '@/lib/clinic-context';
 
 type FlowState = 'search' | 'loading' | 'history' | 'new_patient' | 'vitals' | 'token';
@@ -94,8 +95,23 @@ export default function ReceptionDashboard() {
           <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">R</div>
         </div>
 
-        {/* Page title */}
+        {/* Page title with breadcrumb */}
         <div className="mb-8 print:hidden">
+          <nav className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mb-3">
+            <Link href="/" className="hover:text-blue-600 transition-colors">🏠 Home</Link>
+            <span>›</span>
+            <Link href="/doctor/dashboard" className="hover:text-blue-600 transition-colors">Doctor Dashboard</Link>
+            <span>›</span>
+            <span className="text-slate-600 font-semibold">Reception</span>
+            {flowState !== 'search' && flowState !== 'loading' && (
+              <>
+                <span>›</span>
+                <span className="text-blue-600 font-semibold capitalize">
+                  {flowState === 'new_patient' ? 'New Patient' : flowState === 'history' ? 'Existing Patient' : flowState === 'vitals' ? 'Vitals' : 'Token Generated'}
+                </span>
+              </>
+            )}
+          </nav>
           <h1 className="text-3xl font-bold text-slate-900">Patient Check-in</h1>
           <p className="text-slate-500 mt-2">Enter mobile number to search <strong>{clinic.clinicName}</strong> patient database.</p>
         </div>
