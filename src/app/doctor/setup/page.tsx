@@ -27,6 +27,7 @@ export default function ClinicSetup() {
     morningStart: '09:00', morningEnd: '13:00',
     eveningStart: '17:00', eveningEnd: '20:00',
     offDays: ['Sunday'],
+    selectedTemplate: 't1',
   });
 
   const update = (k: keyof ClinicData, v: string) => setForm(f => ({ ...f, [k]: v }));
