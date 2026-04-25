@@ -88,11 +88,7 @@ export default function DoctorDashboard() {
               {!focusMode && <span>{item.label}</span>}
             </button>
           ))}
-          <Link href="/doctor/prescription-templates"
-            className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
-            <span className="text-lg leading-none">🖨️</span>
-            {!focusMode && <span>Prescription Templates</span>}
-          </Link>
+
         </nav>
 
         <div className="p-3 border-t border-slate-800 space-y-1">
@@ -118,7 +114,7 @@ export default function DoctorDashboard() {
             <p className="text-xs text-slate-500">{clinic.doctorName}</p>
           </div>
           <div className="flex gap-2 text-xl">
-            <Link href="/doctor/prescription-templates">🖨️</Link>
+            <button onClick={() => setActiveTab('settings')} title="Settings">⚙️</button>
           </div>
         </div>
 
@@ -223,10 +219,9 @@ export default function DoctorDashboard() {
                       </div>
 
                       <div className="flex gap-3 pt-2">
-                        <Link href="/doctor/prescription-templates"
-                          className="flex-1 flex items-center justify-center gap-2 py-3.5 border-2 border-slate-900 text-slate-900 rounded-xl font-bold hover:bg-slate-50 transition-colors text-sm active:scale-[0.98]">
-                          🖨️ Print Prescription
-                        </Link>
+                        <div className="flex-1 flex items-center justify-center gap-2 py-3.5 border-2 border-slate-200 text-slate-400 rounded-xl font-medium text-sm cursor-default select-none">
+                          🖨️ Reception prints prescription
+                        </div>
                         {selectedPatient.status !== 'done' && (
                           <button onClick={() => markDone(selectedPatient.token)}
                             className="flex-1 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.98] text-sm">
@@ -356,6 +351,39 @@ export default function DoctorDashboard() {
                   className="mt-8 px-8 py-3.5 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors active:scale-[0.98] shadow-md">
                   💾 Save All Changes
                 </button>
+              </div>
+
+              {/* Prescription Template Selector */}
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+                <h3 className="text-xl font-bold text-slate-900 mb-1">🖨️ Prescription Template</h3>
+                <p className="text-slate-500 text-sm mb-6">Select the default template. Reception will use this layout when printing prescriptions.</p>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {[
+                    { id: 't1', name: 'Classic Blue', color: '#1d4ed8' },
+                    { id: 't2', name: 'Modern Dark', color: '#0f172a' },
+                    { id: 't3', name: 'Minimal', color: '#374151' },
+                    { id: 't4', name: 'Emerald', color: '#059669' },
+                    { id: 't5', name: 'Royal Purple', color: '#7c3aed' },
+                    { id: 't6', name: 'Warm Saffron', color: '#d97706' },
+                    { id: 't7', name: 'Slate Pro', color: '#475569' },
+                    { id: 't8', name: 'Rose Medical', color: '#e11d48' },
+                    { id: 't9', name: 'Ocean Teal', color: '#0891b2' },
+                    { id: 't10', name: 'Gold Premium', color: '#b45309' },
+                  ].map(t => (
+                    <button key={t.id}
+                      onClick={() => { setClinic({ ...clinic, selectedTemplate: t.id }); }}
+                      className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                        clinic.selectedTemplate === t.id
+                          ? 'border-blue-500 bg-blue-50 shadow-md'
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                      }`}>
+                      <div className="w-8 h-8 rounded-lg mb-2" style={{ background: t.color }}></div>
+                      <p className={`text-xs font-bold ${ clinic.selectedTemplate === t.id ? 'text-blue-700' : 'text-slate-700'}`}>{t.name}</p>
+                      {clinic.selectedTemplate === t.id && <p className="text-[10px] text-blue-500 font-semibold mt-0.5">✓ Active</p>}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs text-slate-400">Template is saved automatically when selected. Reception will always use this template.</p>
               </div>
 
               {/* Staff Management */}

@@ -113,7 +113,6 @@ function PrescriptionSheet({ tpl, clinic, patient }: { tpl: typeof TEMPLATES[0];
 function PrintPage() {
   const params = useSearchParams();
   const { clinic } = useClinic();
-  const [selectedTemplate, setSelectedTemplate] = useState('t1');
   const [isPrinting, setIsPrinting] = useState(false);
 
   const patient: Patient = {
@@ -129,7 +128,8 @@ function PrintPage() {
     pulse: params.get('pulse') ?? '',
   };
 
-  const tpl = TEMPLATES.find(t => t.id === selectedTemplate) ?? TEMPLATES[0];
+  // Always use the template selected by the doctor in Settings
+  const tpl = TEMPLATES.find(t => t.id === clinic.selectedTemplate) ?? TEMPLATES[0];
 
   const handlePrint = () => {
     setIsPrinting(true);
@@ -138,54 +138,44 @@ function PrintPage() {
 
   return (
     <>
-      {/* Print-only view */}
+      {/* Print-only */}
       <div className="hidden print:block">
         <PrescriptionSheet tpl={tpl} clinic={clinic} patient={patient} />
       </div>
 
-      {/* Screen UI */}
+      {/* Screen */}
       <div className="min-h-screen bg-slate-100 print:hidden">
-
-        {/* Top Bar */}
         <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-20">
-          <div className="max-w-7xl mx-auto px-5 py-4 flex justify-between items-center">
+          <div className="max-w-5xl mx-auto px-5 py-4 flex justify-between items-center">
             <div>
               <h1 className="text-lg font-bold text-slate-900">Print Prescription</h1>
-              <p className="text-slate-500 text-sm">{patient.name} • Token: <strong>{patient.token}</strong> • {clinic.clinicName}</p>
+              <p className="text-slate-500 text-sm">
+                {patient.name} &bull; Token: <strong>{patient.token}</strong> &bull; {clinic.clinicName}
+              </p>
             </div>
-            <button onClick={handlePrint} disabled={isPrinting}
-              className="flex items-center gap-2 px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-60">
-              {isPrinting ? '⏳ Preparing...' : '🖨️ Print Now'}
-            </button>
+            <div className="flex items-center gap-4">
+              <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="w-4 h-4 rounded" style={{ background: tpl.accent }}></div>
+                <span className="text-sm font-semibold text-slate-600">{tpl.name}</span>
+                <span className="text-xs text-slate-400">(set by doctor)</span>
+              </div>
+              <button onClick={handlePrint} disabled={isPrinting}
+                className="flex items-center gap-2 px-7 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/20 transition-all active:scale-[0.98] disabled:opacity-60">
+                {isPrinting ? '⏳ Preparing...' : '🖨️ Print Prescription'}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-5 py-6 grid lg:grid-cols-4 gap-6">
-
-          {/* Template Selector Panel */}
-          <div className="lg:col-span-1 space-y-3">
-            <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider px-1">Choose Template</h2>
-            <div className="space-y-2 max-h-[calc(100vh-140px)] overflow-y-auto pr-1">
-              {TEMPLATES.map(t => (
-                <button key={t.id} onClick={() => setSelectedTemplate(t.id)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all font-medium text-sm flex items-center gap-3 ${selectedTemplate === t.id ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'}`}>
-                  <span className="w-4 h-4 rounded-full flex-shrink-0 border-2" style={{ background: t.accent, borderColor: t.accent }}></span>
-                  <span>{t.name}</span>
-                  {selectedTemplate === t.id && <span className="ml-auto text-xs font-bold">✓</span>}
-                </button>
-              ))}
-            </div>
+        <div className="max-w-5xl mx-auto px-5 py-6">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm text-slate-500">
+              Template <strong className="text-slate-800">{tpl.name}</strong> selected by doctor &mdash; to change, go to Doctor Settings.
+            </p>
+            <span className="text-xs text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full">A4 Print Size</span>
           </div>
-
-          {/* Preview Panel */}
-          <div className="lg:col-span-3">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-slate-700 text-sm uppercase tracking-wider">Live Preview — <span className="text-blue-600">{tpl.name}</span></h2>
-              <span className="text-xs text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-full">A4 Print Size</span>
-            </div>
-            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden" style={{ transform: 'scale(0.85)', transformOrigin: 'top left', width: '117%' }}>
-              <PrescriptionSheet tpl={tpl} clinic={clinic} patient={patient} />
-            </div>
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+            <PrescriptionSheet tpl={tpl} clinic={clinic} patient={patient} />
           </div>
         </div>
       </div>
