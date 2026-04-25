@@ -248,9 +248,19 @@ export default function ReceptionDashboard() {
                 </div>
 
                 <div className="mt-8 flex flex-col sm:flex-row gap-4 print:hidden">
-                  <button onClick={() => window.print()}
+                  <button
+                    onClick={() => {
+                      const params = new URLSearchParams({
+                        name: patientData.name, age: patientData.age,
+                        gender: patientData.gender, symptoms: patientData.symptoms,
+                        token, mobile: mobileNumber,
+                        bp: vitals.bp, weight: vitals.weight,
+                        temperature: vitals.temperature, pulse: vitals.pulse,
+                      });
+                      window.open(`/prescription/print?${params.toString()}`, '_blank');
+                    }}
                     className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98]">
-                    🖨️ Print Token Slip
+                    🖨️ Print Prescription
                   </button>
                   <button onClick={resetFlow}
                     className="flex-1 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold shadow-md transition-all active:scale-[0.98]">
