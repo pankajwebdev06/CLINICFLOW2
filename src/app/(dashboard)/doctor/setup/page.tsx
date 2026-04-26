@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useClinic, ClinicData } from '@/store/clinic-context';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
+import { useClinic, ClinicData } from '@/core/store/clinic-context';
+import { authApi } from '@/features/auth/api';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { Breadcrumbs } from '@/shared/components/Breadcrumbs';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -24,8 +25,10 @@ export default function ClinicSetup() {
   const [step, setStep] = useState<Step>(1);
   const [staffList, setStaffList] = useState<string[]>([]);
   const [staffInput, setStaffInput] = useState('');
-  const [form, setForm] = useState<ClinicData>({
-    doctorName: '', degree: '', specialization: '', experience: '',
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState<ClinicData & { doctorMobile?: string; doctorPassword?: string }>({
+    doctorName: '', doctorMobile: '', doctorPassword: '', degree: '', specialization: '', experience: '',
     clinicName: '', city: '', address: '', phone: '',
     morningStart: '09:00', morningEnd: '13:00',
     eveningStart: '17:00', eveningEnd: '20:00',
@@ -33,7 +36,7 @@ export default function ClinicSetup() {
     selectedTemplate: 't1',
   });
 
-  const update = (k: keyof ClinicData, v: string) => setForm(f => ({ ...f, [k]: v }));
+  const update = (k: keyof ClinicData | 'doctorMobile' | 'doctorPassword', v: string) => setForm(f => ({ ...f, [k]: v }));
   const toggleDay = (day: string) => {
     setForm(f => ({
       ...f,
@@ -43,10 +46,45 @@ export default function ClinicSetup() {
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 4) { setStep(s => (s + 1) as Step); return; }
-    setClinic(form);
-    router.push('/doctor/dashboard');
+    
+    setError('');
+    setLoading(true);
+    try {
+      // Register Clinic
+      const clinicRes = await authApi.registerClinic({
+        name: form.clinicName || 'My Clinic',
+        doctor_name: form.doctorName || 'Doctor',
+        phone: form.phone,
+      });
+
+      // Register Doctor User
+      if (form.doctorMobile && form.doctorPassword) {
+         await authApi.registerUser({
+           name: form.doctorName || 'Doctor',
+           mobile_number: form.doctorMobile,
+           password: form.doctorPassword,
+           role: 'doctor',
+           clinic_id: clinicRes.id
+         });
+
+         // Login immediately
+         const loginRes = await authApi.login({
+            mobile_number: form.doctorMobile,
+            password: form.doctorPassword
+         });
+         localStorage.setItem("auth_token", loginRes.access_token);
+         localStorage.setItem("user_info", JSON.stringify(loginRes.user));
+      }
+
+      setClinic(form as ClinicData);
+      router.push('/doctor/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Failed to complete registration.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addStaff = () => {
@@ -83,6 +121,11 @@ export default function ClinicSetup() {
               { label: `Step ${step} of ${stepConfig.length}` }
             ]}
           />
+          {error && (
+             <div className="mt-4 bg-red-50 text-red-500 p-3 rounded-md text-sm text-center">
+               {error}
+             </div>
+          )}
         </div>
 
         {/* Step Indicators */}
@@ -121,6 +164,22 @@ export default function ClinicSetup() {
                   onChange={e => update('doctorName', e.target.value)}
                   placeholder="e.g. Dr. Anil Mehra"
                 />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input 
+                    label="Mobile Number (Login ID)"
+                    maxLength={10}
+                    value={form.doctorMobile || ''}
+                    onChange={e => update('doctorMobile', e.target.value)}
+                    placeholder="10 digit number"
+                  />
+                  <Input 
+                    label="Password"
+                    type="password"
+                    value={form.doctorPassword || ''}
+                    onChange={e => update('doctorPassword', e.target.value)}
+                    placeholder="Min 6 chars"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <Input 
                     label="Degree(s)"
@@ -178,7 +237,7 @@ export default function ClinicSetup() {
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-600">Full Clinic Address</label>
                 <textarea rows={3} value={form.address} onChange={e => update('address', e.target.value)}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none text-slate-900 placeholder:text-slate-400"
                   placeholder="Shop No., Street, Area, City – PIN" />
               </div>
             </div>
@@ -285,8 +344,8 @@ export default function ClinicSetup() {
                 Back
               </Button>
             )}
-            <Button onClick={handleNext} variant="primary" size="lg" fullWidth>
-              {step === 4 ? '🚀 Finish & Open Dashboard' : 'Continue →'}
+            <Button onClick={handleNext} variant="primary" size="lg" fullWidth disabled={loading}>
+              {loading ? 'Processing...' : step === 4 ? '🚀 Finish & Open Dashboard' : 'Continue →'}
             </Button>
           </div>
         </div>

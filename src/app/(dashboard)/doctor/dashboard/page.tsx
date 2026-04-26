@@ -2,11 +2,14 @@
 
 import React, { useState } from 'react';
 
-import { useClinic } from '@/store/clinic-context';
+import { useClinic } from '@/core/store/clinic-context';
 import Link from 'next/link';
-import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
-import { VitalsGrid } from '@/components/shared/VitalsGrid';
-import { ClinicSidebar } from '@/components/shared/ClinicSidebar';
+import { Breadcrumbs } from '@/shared/components/Breadcrumbs';
+import { VitalsGrid } from '@/shared/components/VitalsGrid';
+import { ClinicSidebar } from '@/shared/components/ClinicSidebar';
+import { patientsApi } from '@/features/patients/api';
+import { queueApi } from '@/features/queue/api';
+import { useEffect } from 'react';
 
 type Tab = 'queue' | 'summary' | 'settings';
 
@@ -35,6 +38,19 @@ const MOCK_QUEUE: Patient[] = [
 
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
+const TEMPLATES = [
+  { id: 't1', name: 'Classic Blue', color: '#1d4ed8' },
+  { id: 't2', name: 'Modern Dark', color: '#0f172a' },
+  { id: 't3', name: 'Minimal', color: '#374151' },
+  { id: 't4', name: 'Emerald', color: '#059669' },
+  { id: 't5', name: 'Royal Purple', color: '#7c3aed' },
+  { id: 't6', name: 'Warm Saffron', color: '#d97706' },
+  { id: 't7', name: 'Slate Pro', color: '#475569' },
+  { id: 't8', name: 'Rose Medical', color: '#e11d48' },
+  { id: 't9', name: 'Ocean Teal', color: '#0891b2' },
+  { id: 't10', name: 'Gold Premium', color: '#b45309' },
+];
+
 function formatTime(t: string) {
   if (!t) return '';
   const [h, m] = t.split(':');
@@ -46,34 +62,99 @@ function formatTime(t: string) {
 export default function DoctorDashboard() {
   const { clinic, setClinic } = useClinic();
   const [activeTab, setActiveTab] = useState<Tab>('queue');
-  const [queue, setQueue] = useState<Patient[]>(MOCK_QUEUE);
+  const [queue, setQueue] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [focusMode, setFocusMode] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(MOCK_QUEUE[0]);
+  const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
   const [settingsForm, setSettingsForm] = useState(clinic);
 
-  const markDone = (token: string) => {
-    setQueue(q => q.map(p => p.token === token ? { ...p, status: 'done' } : p));
-    const next = queue.find(p => p.status === 'waiting');
-    setSelectedPatient(next ?? null);
+  const fetchQueue = async () => {
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+      if (!userInfo.clinic_id) return;
+      
+      const [qData, pData] = await Promise.all([
+        queueApi.getQueue(userInfo.clinic_id),
+        patientsApi.getPatients(userInfo.clinic_id)
+      ]);
+
+      const merged = qData.map((q: any) => {
+        const p = pData.find((pat: any) => pat.id === q.patient_id) || {};
+        return {
+          id: q.id,
+          token: q.token_number,
+          name: p.name || 'Unknown',
+          age: p.age || 0,
+          gender: p.gender || '—',
+          mobile: p.mobile_number || '—',
+          status: q.status,
+          symptoms: q.symptoms,
+          bp: q.bp,
+          weight: q.weight,
+          temperature: q.temperature,
+          pulse: q.pulse,
+          isNew: false // Can be calculated based on previous visits if needed
+        };
+      });
+
+      setQueue(merged);
+      if (!selectedPatient && merged.length > 0) {
+        const firstWaiting = merged.find((p: any) => p.status === 'waiting' || p.status === 'in_consultation');
+        if (firstWaiting) setSelectedPatient(firstWaiting);
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching queue:", err);
+    }
   };
 
-  const skipPatient = (token: string) => {
-    // Move to end of queue, back to waiting
-    setQueue(q => {
-      const patient = q.find(p => p.token === token);
-      if (!patient) return q;
-      const rest = q.filter(p => p.token !== token);
-      return [...rest, { ...patient, status: 'waiting' as const }];
-    });
-    const next = queue.find(p => p.status === 'waiting' && p.token !== token);
-    setSelectedPatient(next ?? null);
+  useEffect(() => {
+    fetchQueue();
+    const interval = setInterval(fetchQueue, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const markDone = async (id: string) => {
+    try {
+      await queueApi.updateQueueEntry(id, { status: 'completed' });
+      await fetchQueue();
+      setSelectedPatient(null);
+    } catch (err) {
+      alert("Failed to update status");
+    }
   };
 
-  const cancelPatient = (token: string) => {
-    if (!confirm(`Cancel patient ${token} from today's queue?`)) return;
-    setQueue(q => q.filter(p => p.token !== token));
-    const next = queue.find(p => p.status === 'waiting' && p.token !== token);
-    setSelectedPatient(next ?? null);
+  const skipPatient = async (id: string) => {
+    try {
+      await queueApi.updateQueueEntry(id, { status: 'skipped' });
+      await fetchQueue();
+      setSelectedPatient(null);
+    } catch (err) {
+      alert("Failed to skip patient");
+    }
+  };
+
+  const cancelPatient = async (id: string) => {
+    if (!confirm(`Cancel this patient from queue?`)) return;
+    try {
+      await queueApi.updateQueueEntry(id, { status: 'cancelled' });
+      await fetchQueue();
+      setSelectedPatient(null);
+    } catch (err) {
+      alert("Failed to cancel patient");
+    }
+  };
+
+  const selectPatient = async (patient: any) => {
+    setSelectedPatient(patient);
+    if (patient.status === 'waiting') {
+       try {
+         await queueApi.updateQueueEntry(patient.id, { status: 'in_consultation' });
+         fetchQueue(); // Refresh to update status in list
+       } catch (err) {
+         console.error("Failed to update status to in_consultation");
+       }
+    }
   };
 
   const stats = [
@@ -164,13 +245,13 @@ export default function DoctorDashboard() {
 
           {/* Tab: Queue */}
           {activeTab === 'queue' && (
-            <div className="grid md:grid-cols-5 gap-6">
+            <div className="flex flex-col-reverse md:grid md:grid-cols-5 gap-6">
               {/* Queue List */}
               <div className="md:col-span-2 space-y-3">
                 <h3 className="text-lg font-bold text-slate-800 mb-4">Today&apos;s Queue</h3>
                 {queue.map(patient => (
-                  <button key={patient.token} onClick={() => setSelectedPatient(patient)}
-                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${selectedPatient?.token === patient.token ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100' : 'border-slate-100 bg-white hover:border-slate-300 shadow-sm'}`}>
+                  <button key={patient.id} onClick={() => selectPatient(patient)}
+                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${selectedPatient?.id === patient.id ? 'border-blue-500 bg-blue-50 shadow-md shadow-blue-100' : 'border-slate-100 bg-white hover:border-slate-300 shadow-sm'}`}>
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -228,21 +309,21 @@ export default function DoctorDashboard() {
                       {/* 3-Button Action Row */}
                       <div className="grid grid-cols-3 gap-3 pt-2">
                         <button
-                          onClick={() => markDone(selectedPatient.token)}
-                          disabled={selectedPatient.status === 'done'}
+                          onClick={() => markDone(selectedPatient.id)}
+                          disabled={selectedPatient.status === 'completed'}
                           className="py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-md shadow-emerald-600/20 transition-all active:scale-[0.98] text-sm flex flex-col items-center gap-0.5">
                           <span className="text-base">✅</span>
                           <span>Complete</span>
                         </button>
                         <button
-                          onClick={() => skipPatient(selectedPatient.token)}
-                          disabled={selectedPatient.status === 'done'}
+                          onClick={() => skipPatient(selectedPatient.id)}
+                          disabled={selectedPatient.status === 'completed'}
                           className="py-3.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-md shadow-amber-500/20 transition-all active:scale-[0.98] text-sm flex flex-col items-center gap-0.5">
                           <span className="text-base">⏭️</span>
                           <span>Skip</span>
                         </button>
                         <button
-                          onClick={() => cancelPatient(selectedPatient.token)}
+                          onClick={() => cancelPatient(selectedPatient.id)}
                           className="py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold shadow-md shadow-red-500/20 transition-all active:scale-[0.98] text-sm flex flex-col items-center gap-0.5">
                           <span className="text-base">❌</span>
                           <span>Cancel</span>
@@ -372,37 +453,74 @@ export default function DoctorDashboard() {
                 </button>
               </div>
 
-              {/* Prescription Template Selector */}
               <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
                 <h3 className="text-xl font-bold text-slate-900 mb-1">🖨️ Prescription Template</h3>
                 <p className="text-slate-500 text-sm mb-6">Select the default template. Reception will use this layout when printing prescriptions.</p>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                  {[
-                    { id: 't1', name: 'Classic Blue', color: '#1d4ed8' },
-                    { id: 't2', name: 'Modern Dark', color: '#0f172a' },
-                    { id: 't3', name: 'Minimal', color: '#374151' },
-                    { id: 't4', name: 'Emerald', color: '#059669' },
-                    { id: 't5', name: 'Royal Purple', color: '#7c3aed' },
-                    { id: 't6', name: 'Warm Saffron', color: '#d97706' },
-                    { id: 't7', name: 'Slate Pro', color: '#475569' },
-                    { id: 't8', name: 'Rose Medical', color: '#e11d48' },
-                    { id: 't9', name: 'Ocean Teal', color: '#0891b2' },
-                    { id: 't10', name: 'Gold Premium', color: '#b45309' },
-                  ].map(t => (
-                    <button key={t.id}
-                      onClick={() => { setClinic({ ...clinic, selectedTemplate: t.id }); }}
-                      className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                        clinic.selectedTemplate === t.id
-                          ? 'border-blue-500 bg-blue-50 shadow-md'
-                          : 'border-slate-200 bg-slate-50 hover:border-slate-300'
-                      }`}>
-                      <div className="w-8 h-8 rounded-lg mb-2" style={{ background: t.color }}></div>
-                      <p className={`text-xs font-bold ${ clinic.selectedTemplate === t.id ? 'text-blue-700' : 'text-slate-700'}`}>{t.name}</p>
-                      {clinic.selectedTemplate === t.id && <p className="text-[10px] text-blue-500 font-semibold mt-0.5">✓ Active</p>}
-                    </button>
-                  ))}
+                
+                <div className="flex flex-col xl:flex-row gap-8">
+                  {/* Left: Template Grid */}
+                  <div className="flex-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {TEMPLATES.map(t => (
+                        <button key={t.id}
+                          onClick={() => { setClinic({ ...clinic, selectedTemplate: t.id }); }}
+                          className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                            clinic.selectedTemplate === t.id
+                              ? 'border-blue-500 bg-blue-50 shadow-md'
+                              : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                          }`}>
+                          <div className="w-8 h-8 rounded-lg mb-2" style={{ background: t.color }}></div>
+                          <p className={`text-xs font-bold ${ clinic.selectedTemplate === t.id ? 'text-blue-700' : 'text-slate-700'}`}>{t.name}</p>
+                          {clinic.selectedTemplate === t.id && <p className="text-[10px] text-blue-500 font-semibold mt-0.5">✓ Active</p>}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-4 text-xs text-slate-400">Template is saved automatically when selected. Reception will always use this template.</p>
+                  </div>
+                  
+                  {/* Right: Live Preview */}
+                  <div className="w-full xl:w-[400px] flex-shrink-0">
+                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Live Preview</p>
+                       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-300" 
+                            style={{ borderTop: `8px solid ${TEMPLATES.find(t => t.id === clinic.selectedTemplate)?.color || '#1d4ed8'}` }}>
+                          <div className="p-5 border-b border-slate-100 flex justify-between items-start">
+                             <div>
+                               <h4 className="font-black text-lg leading-tight transition-colors duration-300" style={{ color: TEMPLATES.find(t => t.id === clinic.selectedTemplate)?.color || '#1d4ed8' }}>
+                                  {clinic.clinicName || 'Clinic Name'}
+                               </h4>
+                               <p className="text-xs text-slate-600 font-bold mt-1">{clinic.doctorName || 'Dr. Name'} <span className="text-slate-400 font-normal">| {clinic.degree || 'Degree'}</span></p>
+                               <p className="text-[10px] text-slate-400 mt-0.5">{clinic.specialization || 'Specialization'}</p>
+                             </div>
+                             <div className="text-right">
+                               <p className="text-[10px] text-slate-500 font-medium">Mob: {clinic.phone || '+91 0000000000'}</p>
+                             </div>
+                          </div>
+                          <div className="p-5 flex gap-4 min-h-[180px]">
+                             <div className="w-1/3 border-r border-slate-100 pr-4">
+                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Vitals</div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full mb-2"></div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full mb-2"></div>
+                                <div className="h-1.5 w-3/4 bg-slate-100 rounded-full mb-4"></div>
+                                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Symptoms</div>
+                                <div className="h-1.5 w-full bg-slate-100 rounded-full mb-2"></div>
+                             </div>
+                             <div className="flex-1 pl-2">
+                                <div className="text-3xl font-serif mb-4 transition-colors duration-300" style={{ color: TEMPLATES.find(t => t.id === clinic.selectedTemplate)?.color || '#1d4ed8' }}>Rx</div>
+                                <div className="h-2 w-full bg-slate-100 rounded-full mb-3"></div>
+                                <div className="h-2 w-5/6 bg-slate-100 rounded-full mb-3"></div>
+                                <div className="h-2 w-1/2 bg-slate-100 rounded-full mb-6"></div>
+                                <div className="h-2 w-full bg-slate-100 rounded-full mb-3"></div>
+                                <div className="h-2 w-2/3 bg-slate-100 rounded-full mb-3"></div>
+                             </div>
+                          </div>
+                          <div className="p-3 border-t border-slate-100 bg-slate-50 text-center">
+                             <p className="text-[9px] text-slate-400">{clinic.address || 'Clinic full address will appear here on the printed prescription'}</p>
+                          </div>
+                       </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-4 text-xs text-slate-400">Template is saved automatically when selected. Reception will always use this template.</p>
               </div>
 
               {/* Staff Management */}

@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 
-import { useClinic } from '@/store/clinic-context';
+import { useClinic } from '@/core/store/clinic-context';
 import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { VitalsGrid } from '@/components/shared/VitalsGrid';
+import { Button } from '@/shared/components/ui/Button';
+import { Input } from '@/shared/components/ui/Input';
+import { VitalsGrid } from '@/shared/components/VitalsGrid';
 
 const TEMPLATES = [
   {

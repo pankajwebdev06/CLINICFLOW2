@@ -67,7 +67,7 @@ export default function LandingPage() {
             <a href="#pricing" className="hover:text-slate-900 transition-colors">Pricing</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors px-4 py-2">Login</Link>
+            <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors px-4 py-2">Login</Link>
             <Link href="/doctor/setup" className="text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/20 active:scale-[0.98]">
               Get Started Free
             </Link>
@@ -106,7 +106,7 @@ export default function LandingPage() {
             <Link href="/doctor/setup" className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-lg shadow-xl shadow-blue-600/25 transition-all active:scale-[0.98] hover:-translate-y-0.5">
               Register My Clinic →
             </Link>
-            <Link href="/" className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 rounded-2xl font-bold text-lg border-2 border-slate-200 transition-all active:scale-[0.98] hover:-translate-y-0.5">
+            <Link href="/login" className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 rounded-2xl font-bold text-lg border-2 border-slate-200 transition-all active:scale-[0.98] hover:-translate-y-0.5">
               Login to Dashboard
             </Link>
           </div>

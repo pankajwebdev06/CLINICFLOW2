@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useClinic } from '@/store/clinic-context';
-import { Breadcrumbs } from '@/components/shared/Breadcrumbs';
-import { Button } from '@/components/ui/Button';
+import { useClinic } from '@/core/store/clinic-context';
+import { Breadcrumbs } from '@/shared/components/Breadcrumbs';
+import { Button } from '@/shared/components/ui/Button';
 
 const TEMPLATES = [
   { id: 't1', name: 'Classic Blue', accent: '#1d4ed8', bg: '#eff6ff', border: '4px solid #1d4ed8', headerBg: 'white', textColor: '#1e3a5f' },
